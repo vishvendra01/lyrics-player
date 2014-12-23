@@ -6,6 +6,7 @@ import logging
 import urllib
 import thread
 import time
+import dbus
 import os
 
 logging.basicConfig(filename="log.txt", filemode="w", level=logging.DEBUG)
@@ -50,6 +51,9 @@ class GUI(object):
             self.status = str(b_obj.get_state())
         except AttributeError, e:
             self.status = "not running"      # banshee not running
+        except dbus.exceptions.DBusException, e:
+            self.status = "not running"
+        logging.debug(self.status)
         if self.status == "not running":
             self.lyrics_label["text"] = "Banshee not running"
         if self.status == "paused":
