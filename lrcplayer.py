@@ -53,7 +53,6 @@ class GUI(object):
             self.status = "not running"      # banshee not running
         except dbus.exceptions.DBusException, e:
             self.status = "not running"
-        logging.debug(self.status)
         if self.status == "not running":
             self.lyrics_label["text"] = "Banshee not running"
         if self.status == "paused":
@@ -97,9 +96,12 @@ class GUI(object):
                 except IOError:
                     self.lyrics_label["text"] = "internet not working can't download lyrics"
                     self.lyrics_previous_label["text"] = ""
-                else:    
-                    lyrics_dict = MiniLyrics(song_artist, song_title)
-                    urllib.urlretrieve(lyrics_dict[0]["url"], song_path+".lrc")
+                else:
+                    try:   
+                        lyrics_dict = MiniLyrics(song_artist, song_title)
+                        urllib.urlretrieve(lyrics_dict[0]["url"], song_path+".lrc")
+                    except KeyError:
+                        self.lyrics_label["text"] = "Can't Download Lyrics"
         else:
             pass
 
