@@ -15,22 +15,23 @@ class GUI(object):
     def __init__(self, master):
         self.master = master
         self.lyrics_tags = False
-        self.previous_lyrics = ""
+        self.previous_lyrics = "this is a dummy lyrics"
         self.master.title("Lyrics Player")
         self.master.geometry("500x300")
         self.init_gui()
         thread.start_new_thread(self.thread_handler, ())
 
     def init_gui(self):
-        self.lyrics_previous_label = Label(self.master, text="previous here", bg="yellow", fg="black", font=('Arial', 14, 'bold'))
-        self.lyrics_previous_label.pack(fill=BOTH, expand=1)
-        self.lyrics_label = Label(self.master, text="lyrics here",bg="yellow", fg="black", font=('Arial' ,14, 'bold'))
-        self.lyrics_label.pack(fill=BOTH, expand=1)
+
+        self.lyrics_previous_label = Label(self.master, text="previous here", bg="yellow",pady=0, fg="red", font=('Arial', 14, 'bold'), border=0)
+        self.lyrics_previous_label.pack(expand=1)
+        self.lyrics_label = Label(self.master, text="lyrics here",bg="yellow", fg="blue", pady=0,font=('Arial' ,14, 'bold'), border=0)
+        self.lyrics_label.pack(expand=1)
         self.song_title_label = Label(self.master, text="song title", font=('Ubuntu-Mono',12))
         self.song_title_label.pack(anchor=W)
         self.song_singer_label = Label(self.master, text="singer here")
         self.song_singer_label.pack(anchor=W)
-        self.elapsed_time_label = Label(self.master, text="[00:00:00]")
+        self.elapsed_time_label = Label(self.master, text="[00:00]")
         self.elapsed_time_label.pack(anchor=W)
 
     def reset_gui(self):
@@ -42,7 +43,7 @@ class GUI(object):
     def thread_handler(self):
         while True:
             self.banshee_controller()
-            time.sleep(0.01)
+            time.sleep(1)
 
     def banshee_controller(self):
         self.status = "playing"
@@ -82,13 +83,11 @@ class GUI(object):
                 lyrics, tags = load_lyrics(song_path+".lrc")
                 if tags != None:
                     tags_dict = {x[0]:x[1] for x in tags}
-                    try:
+                    if tags_dict.has_key(pos_in_sec):
                         self.lyrics_label["text"] = tags_dict[pos_in_sec]
                         self.lyrics_previous_label["text"] = self.previous_lyrics
                         self.previous_lyrics = self.lyrics_label["text"]
-                    except KeyError:
-                        pass
-                    self.lyrics_previous_label["text"] = self.previous_lyrics
+
                 else:
                     self.lyrics_label["text"] = "Lyrics Not available"
             else:
