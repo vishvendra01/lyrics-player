@@ -42,7 +42,7 @@ class GUI(object):
     def thread_handler(self):
         while True:
             self.banshee_controller()
-            time.sleep(0.001)
+            time.sleep(0.01)
 
     def banshee_controller(self):
         self.status = "playing"
@@ -88,6 +88,7 @@ class GUI(object):
                         self.previous_lyrics = self.lyrics_label["text"]
                     except KeyError:
                         pass
+                    self.lyrics_previous_label["text"] = self.previous_lyrics
                 else:
                     self.lyrics_label["text"] = "Lyrics Not available"
             else:
@@ -108,4 +109,5 @@ class GUI(object):
 
 root = Tk()
 gui_obj = GUI(root)
+root.wm_attributes("-topmost", 1)
 root.mainloop()
