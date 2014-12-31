@@ -2,6 +2,7 @@
 import re
 
 def parse_lrc(data):
+    data = data.replace("\r\n", "\n")          # to avoid weird symbol in Tkinter
     tag_regex = R"(\[\d+\:\d+\.\d*\])"
     match = re.search(tag_regex, data)
 

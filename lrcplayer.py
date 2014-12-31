@@ -13,39 +13,64 @@ logging.basicConfig(filename="log.txt", filemode="w", level=logging.DEBUG)
 
 class GUI(object):
     def __init__(self, master):
+        # root
         self.master = master
-        self.lyrics_tags = False
-        self.previous_lyrics = "this is a dummy lyrics"
+        # control variables
+        self.control_var = False         # set False is song changed
+        self.lyrics_avail = True         # set true if lyrics is avail
+        # general needed vars
+        self.lyrics = ""
+        self.lyrics_tags = ""
+        self.current_song = ""
+        # method calling
         self.master.title("Lyrics Player")
         self.master.geometry("500x300")
         self.init_gui()
         thread.start_new_thread(self.thread_handler, ())
 
     def init_gui(self):
-
-        self.lyrics_previous_label = Label(self.master, text="previous here", bg="yellow",pady=0, fg="red", font=('Arial', 14, 'bold'), border=0)
-        self.lyrics_previous_label.pack(expand=1)
-        self.lyrics_label = Label(self.master, text="lyrics here",bg="yellow", fg="blue", pady=0,font=('Arial' ,14, 'bold'), border=0)
-        self.lyrics_label.pack(expand=1)
+        # lyrics_frame displays lyrics
+        self.lyrics_frame = Frame(self.master)
+        self.lyrics_frame.pack(expand=1, fill=BOTH)
+        self.scrollbar = Scrollbar(self.lyrics_frame)
+        self.scrollbar.pack(side=RIGHT, fill=Y)
+        self.lyrics_text = Text(self.lyrics_frame, bg="yellow", height=2, width=45, state="disabled", yscrollcommand=self.scrollbar.set)
+        # other attributes
         self.song_title_label = Label(self.master, text="song title", font=('Ubuntu-Mono',12))
-        self.song_title_label.pack(anchor=W)
         self.song_singer_label = Label(self.master, text="singer here")
-        self.song_singer_label.pack(anchor=W)
         self.elapsed_time_label = Label(self.master, text="[00:00]")
+        self.lyrics_text.pack(expand=1, fill=BOTH)
+        self.song_singer_label.pack(anchor=W)
+        self.song_title_label.pack(anchor=W)
         self.elapsed_time_label.pack(anchor=W)
+        
 
     def reset_gui(self):
-        self.lyrics_previous_label["text"] = ""
+        self.lyrics_text.delete("1.0", END)
         self.song_title_label["text"] = ""
         self.song_singer_label["text"] = ""
         self.elapsed_time_label["text"] = ""
 
+    def display_msg(self, msg):
+        logging.debug(self.lyrics_text.get("1.0", END))
+        if self.lyrics_text.get("1.0", END) in ["banshee not running\n", "banshee paused\n", "banshee idle\n"]:
+            pass
+        else:
+            self.lyrics_text["state"] = "normal"
+            self.lyrics_text.delete("1.0", END)
+            self.lyrics_text.insert("1.0",msg)
+            self.lyrics_text.tag_add("firstline", "1.0", "2.0")
+            self.lyrics_text.tag_configure("firstline", foreground="blue", font=("Ubuntu-Mono", 15, "bold"))
+            self.lyrics_text["state"] = "disabled"
+
     def thread_handler(self):
         while True:
             self.banshee_controller()
-            time.sleep(1)
+            time.sleep(0.1)
 
     def banshee_controller(self):
+        """ checks for status for banshee every second """
+        # status checks
         self.status = "playing"
         b_obj = Banshee_Info()
         try:
@@ -55,12 +80,13 @@ class GUI(object):
         except dbus.exceptions.DBusException, e:
             self.status = "not running"
         if self.status == "not running":
-            self.lyrics_label["text"] = "Banshee not running"
+            self.display_msg("banshee not running")
         if self.status == "paused":
-            self.lyrics_label["text"] = "Banshee Paused"
+            self.display_msg("banshee paused")
         if self.status == "idle":
-            self.lyrics_label["text"] = "Banshee Idle"
+            self.display_msg("banshee idle")
         if self.status == "playing":
+            # if banshee is playing songs
             song_path = urllib.unquote(str(b_obj.get_uri()))[7:]
             song_artist = b_obj.get_author()
             song_title = b_obj.get_title()
@@ -69,41 +95,83 @@ class GUI(object):
             self.song_title_label["text"] = song_title
             self.song_singer_label["text"] = song_artist
             self.elapsed_time_label["text"] = "[%s]" %custom_position
+            # set control_var 
+            if self.current_song != song_title:
+                self.control_var = False
+            # display_lyrics on screen
             self.display_lyrics(song_path, song_artist, song_title, pos_in_sec, custom_position)
 
+    def load_lyrics(self, lrc_path):
+        with open(lrc_path) as fh:
+            lrc_data = fh.read()
+            lyrics, tags = parse_lrc(lrc_data)
+            return (lyrics, tags)
+
     def display_lyrics(self, song_path, song_artist, song_title, pos_in_sec, custom_position):
-        def load_lyrics(lrc_path):
-            with open(lrc_path) as fh:
-                lrc_data = fh.read()
-                lyrics, tags = parse_lrc(lrc_data)
-                return (lyrics, tags)
-
-        if self.lyrics_tags == False:
+        if self.control_var == False:
             if os.path.exists(song_path+".lrc"):
-                lyrics, tags = load_lyrics(song_path+".lrc")
-                if tags != None:
-                    tags_dict = {x[0]:x[1] for x in tags}
-                    if tags_dict.has_key(pos_in_sec):
-                        self.lyrics_label["text"] = tags_dict[pos_in_sec]
-                        self.lyrics_previous_label["text"] = self.previous_lyrics
-                        self.previous_lyrics = self.lyrics_label["text"]
-
+                self.lyrics, self.lyrics_tags = self.load_lyrics(song_path+".lrc")
+                if self.lyrics_tags != None:
+                    # set lyrics_avail true it shows lyrics is available
+                    self.lyrics_avail = True
                 else:
-                    self.lyrics_label["text"] = "Lyrics Not available"
+                    self.display_msg("Lyrics Not available")
+                    self.lyrics_avail = False
             else:
                 try:
                     urllib.urlopen("http://www.google.com")
                 except IOError:
-                    self.lyrics_label["text"] = "internet not working can't download lyrics"
-                    self.lyrics_previous_label["text"] = ""
+                    self.display_msg("internet not working can't download lyrics")
+                    self.lyrics_avail = False
                 else:
                     try:   
                         lyrics_dict = MiniLyrics(song_artist, song_title)
                         urllib.urlretrieve(lyrics_dict[0]["url"], song_path+".lrc")
                     except KeyError:
-                        self.lyrics_label["text"] = "Can't Download Lyrics"
-        else:
-            pass
+                        self.display_msg("can't download lyrics")
+                        self.lyrics_avail = False
+                    else:
+                        self.lyrics, self.lyrics_tags = self.load_lyrics(song_path+".lrc")
+                        if self.lyrics_tags != None:
+                            self.lyrics_avail = True
+                        else:
+                            self.display_msg("lyrics not available")
+                            self.lyrics_avail = False
+            # set current_song to song_title
+            # set control_var to true
+            # due to this, this block run only one time
+            self.current_song = song_title
+            self.control_var = True
+            if self.lyrics_avail == True:
+                self.lyrics_text["state"] = "normal"
+                self.lyrics_text.delete("1.0", END)
+                self.lyrics_text.insert("1.0", self.lyrics)
+                self.lyrics_text["state"] = "disabled"
+        elif self.lyrics_avail == True:
+            tags_dict = {x[0]:x[1] for x in self.lyrics_tags}
+            if tags_dict.has_key(pos_in_sec):
+                # ordered dict initialization
+                ordered_tags_dict = {}
+                count = 1
+                for x in sorted(tags_dict):
+                    ordered_tags_dict[x] = [tags_dict[x], count]
+                    count += 1
+                lyrics_line = ordered_tags_dict[pos_in_sec][1]
+                # manipulating lyrics display gui
+                self.lyrics_text["state"] = "normal"
+                self.lyrics_text.tag_add("sync", "%d.0" %lyrics_line, "%d.0" %(lyrics_line+1))
+                self.lyrics_text.tag_config("sync", foreground="red")
+                self.lyrics_text.see("%d.0" %(lyrics_line+4))
+                self.lyrics_text["state"] = "disabled"
+                # debug logs
+                logging.debug('start')
+                logging.debug('len lyrics: %s' %(len(self.lyrics.split('\n'))))
+                logging.debug('len: %s' %len(tags_dict))
+                logging.debug('current_line: %s' %lyrics_line)
+                logging.debug('lyrics: %s' %tags_dict[pos_in_sec])
+                logging.debug('ordered lyrics: %s' %ordered_tags_dict[pos_in_sec][0])
+                logging.debug('exit')
+
 
 
 root = Tk()
