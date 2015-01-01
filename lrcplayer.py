@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from Tkinter import *
 from lyricshandler import parse_lrc
 from banshee_info import Banshee_Info
@@ -22,6 +23,8 @@ class GUI(object):
         self.lyrics = ""
         self.lyrics_tags = ""
         self.current_song = ""
+        self.tags_dict = ""
+        self.ordered_tags_dict = ""
         # method calling
         self.master.title("Lyrics Player")
         self.master.geometry("500x300")
@@ -52,9 +55,9 @@ class GUI(object):
         self.elapsed_time_label["text"] = ""
 
     def display_msg(self, msg):
-        logging.debug(self.lyrics_text.get("1.0", END))
+        # logging.debug(self.lyrics_text.get("1.0", END))
         if self.lyrics_text.get("1.0", END) in ["banshee not running\n", "banshee paused\n", "banshee idle\n"]:
-            pass
+            self.control_var = False
         else:
             self.lyrics_text["state"] = "normal"
             self.lyrics_text.delete("1.0", END)
@@ -64,9 +67,11 @@ class GUI(object):
             self.lyrics_text["state"] = "disabled"
 
     def thread_handler(self):
+        now = time.time()
         while True:
             self.banshee_controller()
-            time.sleep(0.1)
+            time.sleep(0.03)
+            
 
     def banshee_controller(self):
         """ checks for status for banshee every second """
@@ -90,7 +95,7 @@ class GUI(object):
             song_path = urllib.unquote(str(b_obj.get_uri()))[7:]
             song_artist = b_obj.get_author()
             song_title = b_obj.get_title()
-            pos_in_sec = int(b_obj.banshee.GetPosition())/1000
+            pos_in_sec = float((b_obj.banshee.GetPosition()/100)/10.0)
             custom_position = b_obj.get_custom_position()
             self.song_title_label["text"] = song_title
             self.song_singer_label["text"] = song_artist
@@ -119,12 +124,14 @@ class GUI(object):
                     self.lyrics_avail = False
             else:
                 try:
+                    self.display_msg("downloading lyrics...")
                     urllib.urlopen("http://www.google.com")
                 except IOError:
                     self.display_msg("internet not working can't download lyrics")
                     self.lyrics_avail = False
                 else:
-                    try:   
+                    try:
+                        self.display_msg("downloading lyrics...")   
                         lyrics_dict = MiniLyrics(song_artist, song_title)
                         urllib.urlretrieve(lyrics_dict[0]["url"], song_path+".lrc")
                     except KeyError:
@@ -147,30 +154,30 @@ class GUI(object):
                 self.lyrics_text.delete("1.0", END)
                 self.lyrics_text.insert("1.0", self.lyrics)
                 self.lyrics_text["state"] = "disabled"
-        elif self.lyrics_avail == True:
-            tags_dict = {x[0]:x[1] for x in self.lyrics_tags}
-            if tags_dict.has_key(pos_in_sec):
-                # ordered dict initialization
-                ordered_tags_dict = {}
+                self.tags_dict = {x[0]:x[1] for x in self.lyrics_tags}
+                self.ordered_tags_dict = {}
                 count = 1
-                for x in sorted(tags_dict):
-                    ordered_tags_dict[x] = [tags_dict[x], count]
+                for x in sorted(self.tags_dict):
+                    self.ordered_tags_dict[x] = [self.tags_dict[x], count]
                     count += 1
-                lyrics_line = ordered_tags_dict[pos_in_sec][1]
+        elif self.lyrics_avail == True:
+            if self.tags_dict.has_key(pos_in_sec):
+                lyrics_line = self.ordered_tags_dict[pos_in_sec][1]
                 # manipulating lyrics display gui
                 self.lyrics_text["state"] = "normal"
                 self.lyrics_text.tag_add("sync", "%d.0" %lyrics_line, "%d.0" %(lyrics_line+1))
                 self.lyrics_text.tag_config("sync", foreground="red")
-                self.lyrics_text.see("%d.0" %(lyrics_line+4))
+                self.lyrics_text.see("%d.0" %(lyrics_line+8))
                 self.lyrics_text["state"] = "disabled"
                 # debug logs
-                logging.debug('start')
-                logging.debug('len lyrics: %s' %(len(self.lyrics.split('\n'))))
-                logging.debug('len: %s' %len(tags_dict))
-                logging.debug('current_line: %s' %lyrics_line)
-                logging.debug('lyrics: %s' %tags_dict[pos_in_sec])
-                logging.debug('ordered lyrics: %s' %ordered_tags_dict[pos_in_sec][0])
-                logging.debug('exit')
+                # logging.debug('start')
+                # logging.debug('len lyrics: %s' %(len(self.lyrics.split('\n'))))
+                # logging.debug('len: %s' %len(self.tags_dict))
+                # logging.debug('current_line: %s' %lyrics_line)
+                # logging.debug('lyrics: %s' %self.tags_dict[pos_in_sec])
+                # logging.debug('ordered lyrics: %s' %self.ordered_tags_dict[pos_in_sec][0])
+                # logging.debug('exit')
+                # pickle.dump(self.ordered_tags_dict, open("self.tags_dict.p", "wb"))
 
 
 
