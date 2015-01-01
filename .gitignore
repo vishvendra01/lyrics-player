@@ -1,1 +1,5 @@
 *.pyc
+*.txt
+*.md
+lrcplayer.sublime-workspace
+lrcplayer.sublime-project

@@ -29,7 +29,7 @@ class Banshee_Info:
             minute = conversion_value[minute]
         if pulses < 10:
             pulses = conversion_value[pulses]
-        return "%s:%s.%s" %(minute, secs, pulses)
+        return "%s:%s" %(minute, secs)
 
     def get_title(self):
         return self.__get_track_info().get('name')

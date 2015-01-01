@@ -2,6 +2,7 @@
 import re
 
 def parse_lrc(data):
+    data = data.replace("\r\n", "\n")          # to avoid weird symbol in Tkinter
     tag_regex = R"(\[\d+\:\d+\.\d*\])"
     match = re.search(tag_regex, data)
 
@@ -27,4 +28,4 @@ def parse_lrc(data):
 def time_to_seconds(time):
     time = time[1:-1].replace(":", ".")
     t = time.split(".")
-    return 60 * int(t[0]) + int(t[1])
+    return float("%d.%d" %(60 * int(t[0]) + int(t[1]), int(t[2] if int(t[2]) < 10 else int(t[2])/10)))
