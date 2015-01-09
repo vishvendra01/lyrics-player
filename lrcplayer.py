@@ -34,11 +34,13 @@ class GUI(object):
     def init_gui(self):
         # lyrics_frame displays lyrics
         self.lyrics_frame = Frame(self.master)
-        self.lyrics_text = Text(self.lyrics_frame, bg="yellow", height=2, width=45, state="disabled", yscrollcommand=self.scrollbar.set)
         self.scrollbar = Scrollbar(self.lyrics_frame)
+        self.lyrics_text = Text(self.lyrics_frame, bg="yellow", height=2, width=45, state="disabled", yscrollcommand=self.scrollbar.set)
+        self.scrollbar.config(command=self.lyrics_text.yview)
         self.lyrics_frame.pack(expand=1, fill=BOTH)
-        self.lyrics_text.pack(expand=1, fill=BOTH)
         self.scrollbar.pack(side=RIGHT, fill=Y)
+        self.lyrics_text.pack(expand=1, fill=BOTH)
+        
         
         # other attributes
         self.song_title_label = Label(self.master, text="song title", font=('Ubuntu-Mono',12))
