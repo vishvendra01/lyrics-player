@@ -1,5 +1,9 @@
 an simple Tkinter app which displays sync lyrics of playing song in banshee
-music player.
+music player. Right now it's pretty limited and basic functional. so any kind of contribution is welcomed.
+
+Contribution
+------------
+to contribute this repo just add or change whatever you want and make a merge request.
 
 TODO:
 ====
